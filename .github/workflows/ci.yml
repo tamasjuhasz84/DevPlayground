@@ -87,13 +87,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Rebuild better-sqlite3
-        run: pnpm -C apps/api rebuild better-sqlite3
-
-      - name: Hard gate - verify better-sqlite3 loads
+      - name: Force rebuild better-sqlite3 from pnpm store location
         run: |
-          cd apps/api
-          node -e "require('better-sqlite3'); console.log('✓ better-sqlite3 loaded successfully');"
+          echo "=== Locating better-sqlite3 in pnpm store ==="
+          BETTER_SQLITE_PATH=$(find node_modules/.pnpm -type d -path "*/better-sqlite3@*/node_modules/better-sqlite3" | head -n1)
+          echo "Found at: $BETTER_SQLITE_PATH"
+          if [ -z "$BETTER_SQLITE_PATH" ]; then
+            echo "ERROR: Could not locate better-sqlite3 in pnpm store"
+            exit 1
+          fi
+          echo "=== Running npm rebuild in better-sqlite3 directory ==="
+          cd "$BETTER_SQLITE_PATH"
+          npm rebuild --build-from-source
+          echo "=== Verifying build output ==="
+          ls -la build/Release/ || echo "Build failed - no Release directory"
+
+      - name: Verify build artifact exists
+        run: |
+          echo "=== Searching for better_sqlite3.node ==="
+          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -ls || echo "ERROR: No .node file found"
+
+      - name: Hard gate - verify better-sqlite3 loads from apps/api
+        run: |
+          echo "=== Running require test from apps/api ==="
+          cd apps/api && node -e "const db = require('better-sqlite3')(':memory:'); console.log('✓ better-sqlite3 loaded successfully'); db.close();"
 
       - name: Test API
         run: pnpm -C apps/api test
