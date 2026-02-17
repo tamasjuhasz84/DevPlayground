@@ -106,10 +106,16 @@ jobs:
           env | grep -i npm_config || true
 
       - name: Force scripts on
+        shell: bash
         run: |
+          set -euxo pipefail
           pnpm config set ignore-scripts false
           pnpm config set enable-pre-post-scripts true
-          pnpm --filter @dp/api rebuild better-sqlite3 --loglevel=debug
+          pnpm -C apps/api rebuild better-sqlite3 --loglevel=debug
+          echo "=== Verifying Node.js and ABI ==="
+          pnpm -C apps/api exec node -e "console.log('node', process.version, 'abi', process.versions.modules)"
+          echo "=== Requiring better-sqlite3 ==="
+          pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3: OK')"
 
       - name: Hard gate - verify better_sqlite3.node exists
         run: |
