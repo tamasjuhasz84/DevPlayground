@@ -31,8 +31,16 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 make g++ build-essential pkg-config libsqlite3-dev
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Rebuild better-sqlite3
+        run: pnpm --filter @dp/api rebuild better-sqlite3
 
       - name: Format check
         run: pnpm format:check
