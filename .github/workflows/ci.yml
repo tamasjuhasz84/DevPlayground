@@ -42,6 +42,11 @@ jobs:
       - name: Rebuild better-sqlite3
         run: pnpm --filter @dp/api rebuild better-sqlite3
 
+      - name: Verify better-sqlite3 native bindings
+        run: |
+          ls -la apps/api/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release || true
+          find apps/api/node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print || true
+
       - name: Format check
         run: pnpm format:check
 
