@@ -16,6 +16,7 @@ jobs:
 
     env:
       CI: true
+      npm_config_build_from_source: true
 
     steps:
       - name: Checkout code
@@ -39,13 +40,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Rebuild better-sqlite3
-        run: pnpm --filter @dp/api rebuild better-sqlite3
+      # Force rebuild in the api workspace context
+      - name: Rebuild better-sqlite3 (api)
+        run: pnpm -C apps/api rebuild better-sqlite3
 
+      # Verify bindings exist (workspace deps live in root node_modules/.pnpm)
       - name: Verify better-sqlite3 native bindings
         run: |
-          ls -la apps/api/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release || true
-          find apps/api/node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print || true
+          echo "Node: $(node -v)"
+          echo "pnpm: $(pnpm -v)"
+          echo "Searching for better_sqlite3.node..."
+          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print
+          echo "Listing Release dirs (if present):"
+          ls -ლა node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release 2>/dev/null || true
 
       - name: Format check
         run: pnpm format:check
@@ -77,24 +84,3 @@ jobs:
           name: web-coverage
           path: apps/web/coverage/
           if-no-files-found: warn
-
-      - name: Generate workflow summary
-        if: always()
-        run: |
-          echo "# CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Environment" >> $GITHUB_STEP_SUMMARY
-          echo "- **Node.js**: 22" >> $GITHUB_STEP_SUMMARY
-          echo "- **pnpm**: 10" >> $GITHUB_STEP_SUMMARY
-          echo "- **Runner**: ubuntu-latest" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Quality Checks" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Code formatting (prettier)" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Linting (eslint)" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Build verification" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Test suite" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Coverage generation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 **api-coverage** - API test coverage report" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 **web-coverage** - Web test coverage report" >> $GITHUB_STEP_SUMMARY
