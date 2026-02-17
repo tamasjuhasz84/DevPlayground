@@ -88,6 +88,39 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Diagnose pnpm script settings
+        run: |
+          echo "=== .npmrc contents ==="
+          cat .npmrc || true
+          echo "=== pnpm ignore-scripts ==="
+          pnpm config get ignore-scripts
+          echo "=== pnpm enable-pre-post-scripts ==="
+          pnpm config get enable-pre-post-scripts
+          echo "=== pnpm config list ==="
+          pnpm config list
+          echo "=== pnpm env vars ==="
+          env | grep -i pnpm || true
+          echo "=== ignore_scripts env vars ==="
+          env | grep -i ignore_scripts || true
+          echo "=== npm_config env vars ==="
+          env | grep -i npm_config || true
+
+      - name: Force scripts on
+        run: |
+          pnpm config set ignore-scripts false
+          pnpm config set enable-pre-post-scripts true
+          pnpm --filter @dp/api rebuild better-sqlite3 --loglevel=debug
+
+      - name: Hard gate - verify better_sqlite3.node exists
+        run: |
+          echo "=== Searching for better_sqlite3.node (MUST EXIST) ==="
+          FOUND=$(find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print)
+          if [ -z "$FOUND" ]; then
+            echo "ERROR: No better_sqlite3.node found!"
+            exit 1
+          fi
+          echo "Found: $FOUND"
+
       - name: Diagnose environment
         run: |
           echo "=== Node.js version ==="
@@ -98,16 +131,6 @@ jobs:
           node -p "process.versions.modules"
           echo "=== better-sqlite3 dependency ==="
           pnpm --filter @dp/api why better-sqlite3 || true
-
-      - name: Rebuild better-sqlite3 with verbose logs
-        run: pnpm -C apps/api rebuild better-sqlite3 --loglevel=debug
-
-      - name: Verify better-sqlite3 native bindings
-        run: |
-          echo "=== Searching for better_sqlite3.node ==="
-          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print || echo "No .node files found"
-          echo "=== Listing build directories ==="
-          find node_modules/.pnpm -path '*better-sqlite3*/build/Release' -type d -exec ls -la {} \; || echo "No build directories found"
 
       - name: Test API
         run: pnpm --filter @dp/api test
