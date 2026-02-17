@@ -11,7 +11,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
+  web:
+    name: Web (Node 22)
+    runs-on: ubuntu-latest
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm --filter web build
+
+      - name: Test Web
+        run: pnpm --filter web test
+
+      - name: Generate Web coverage
+        run: pnpm --filter web run coverage
+
+      - name: Upload Web coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-coverage
+          path: apps/web/coverage/
+          if-no-files-found: warn
+
+  api:
+    name: API (Node 20 LTS)
     runs-on: ubuntu-latest
 
     env:
@@ -28,7 +76,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
@@ -40,34 +88,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Force rebuild in the api workspace context
-      - name: Rebuild better-sqlite3 (api)
-        run: pnpm -C apps/api rebuild better-sqlite3
+      - name: Diagnose environment
+        run: |
+          echo "=== Node.js version ==="
+          node -v
+          echo "=== pnpm version ==="
+          pnpm -v
+          echo "=== Node.js modules ABI ==="
+          node -p "process.versions.modules"
+          echo "=== better-sqlite3 dependency ==="
+          pnpm --filter @dp/api why better-sqlite3 || true
 
-      # Verify bindings exist (workspace deps live in root node_modules/.pnpm)
+      - name: Rebuild better-sqlite3 with verbose logs
+        run: pnpm -C apps/api rebuild better-sqlite3 --loglevel=debug
+
       - name: Verify better-sqlite3 native bindings
         run: |
-          echo "Node: $(node -v)"
-          echo "pnpm: $(pnpm -v)"
-          echo "Searching for better_sqlite3.node..."
-          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print
-          echo "Listing Release dirs (if present):"
-          ls -ლა node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release 2>/dev/null || true
+          echo "=== Searching for better_sqlite3.node ==="
+          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print || echo "No .node files found"
+          echo "=== Listing build directories ==="
+          find node_modules/.pnpm -path '*better-sqlite3*/build/Release' -type d -exec ls -la {} \; || echo "No build directories found"
 
-      - name: Format check
-        run: pnpm format:check
+      - name: Test API
+        run: pnpm --filter @dp/api test
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build
-        run: pnpm build
-
-      - name: Test
-        run: pnpm test
-
-      - name: Generate coverage
-        run: pnpm coverage
+      - name: Generate API coverage
+        run: pnpm --filter @dp/api run coverage
 
       - name: Upload API coverage
         uses: actions/upload-artifact@v4
@@ -75,12 +121,4 @@ jobs:
         with:
           name: api-coverage
           path: apps/api/coverage/
-          if-no-files-found: warn
-
-      - name: Upload Web coverage
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: web-coverage
-          path: apps/web/coverage/
           if-no-files-found: warn
