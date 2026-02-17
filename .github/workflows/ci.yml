@@ -59,90 +59,50 @@ jobs:
           if-no-files-found: warn
 
   api:
-    name: API (Node 20 LTS)
-    runs-on: ubuntu-latest
+  name: API (Node 20 LTS)
+  runs-on: ubuntu-latest
+  env:
+    CI: true
+    npm_config_build_from_source: true
+    npm_config_ignore_scripts: "false"
 
-    env:
-      CI: true
-      npm_config_build_from_source: true
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        # IMPORTANT: no pnpm cache here (native addon determinism)
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-          cache-dependency-path: pnpm-lock.yaml
+    - name: Install build prerequisites
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3 make g++ build-essential pkg-config libsqlite3-dev
 
-      - name: Install build prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3 make g++ build-essential pkg-config libsqlite3-dev
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+    - name: Rebuild better-sqlite3 (api)
+      run: pnpm -C apps/api rebuild better-sqlite3
 
-      - name: Diagnose pnpm script settings
-        run: |
-          echo "=== .npmrc contents ==="
-          cat .npmrc || true
-          echo "=== pnpm ignore-scripts ==="
-          pnpm config get ignore-scripts
-          echo "=== pnpm enable-pre-post-scripts ==="
-          pnpm config get enable-pre-post-scripts
-          echo "=== pnpm config list ==="
-          pnpm config list
-          echo "=== pnpm env vars ==="
-          env | grep -i pnpm || true
-          echo "=== ignore_scripts env vars ==="
-          env | grep -i ignore_scripts || true
-          echo "=== npm_config env vars ==="
-          env | grep -i npm_config || true
+    - name: Hard gate (require better-sqlite3)
+      run: pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
 
-      - name: Force scripts on
-        shell: bash
-        run: |
-          set -euxo pipefail
-          pnpm config set ignore-scripts false
-          pnpm config set enable-pre-post-scripts true
-          pnpm -C apps/api rebuild better-sqlite3 --loglevel=debug
-          echo "=== Verifying Node.js and ABI ==="
-          pnpm -C apps/api exec node -e "console.log('node', process.version, 'abi', process.versions.modules)"
-          echo "=== Requiring better-sqlite3 ==="
-          pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3: OK')"
+    - name: Test API
+      run: pnpm --filter @dp/api test
 
-      - name: Hard gate - runtime require test
-        run: |
-          echo "=== Hard gate: better-sqlite3 native binding must load ==="
-          pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3 native binding OK')"
+    - name: Generate API coverage
+      run: pnpm --filter @dp/api run coverage
 
-      - name: Diagnose environment
-        run: |
-          echo "=== Node.js version ==="
-          node -v
-          echo "=== pnpm version ==="
-          pnpm -v
-          echo "=== Node.js modules ABI ==="
-          node -p "process.versions.modules"
-          echo "=== better-sqlite3 dependency ==="
-          pnpm --filter @dp/api why better-sqlite3 || true
-
-      - name: Test API
-        run: pnpm --filter @dp/api test
-
-      - name: Generate API coverage
-        run: pnpm --filter @dp/api run coverage
-
-      - name: Upload API coverage
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: api-coverage
-          path: apps/api/coverage/
-          if-no-files-found: warn
+    - name: Upload API coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: api-coverage
+        path: apps/api/coverage/
+        if-no-files-found: warn
