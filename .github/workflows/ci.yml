@@ -117,15 +117,10 @@ jobs:
           echo "=== Requiring better-sqlite3 ==="
           pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3: OK')"
 
-      - name: Hard gate - verify better_sqlite3.node exists
+      - name: Hard gate - runtime require test
         run: |
-          echo "=== Searching for better_sqlite3.node (MUST EXIST) ==="
-          FOUND=$(find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print)
-          if [ -z "$FOUND" ]; then
-            echo "ERROR: No better_sqlite3.node found!"
-            exit 1
-          fi
-          echo "Found: $FOUND"
+          echo "=== Hard gate: better-sqlite3 native binding must load ==="
+          pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3 native binding OK')"
 
       - name: Diagnose environment
         run: |
