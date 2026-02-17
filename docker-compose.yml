@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: devplay_db
+    environment:
+      POSTGRES_USER: devplay
+      POSTGRES_PASSWORD: devplay
+      POSTGRES_DB: devplay
+    ports:
+      - "5432:5432"
+    volumes:
+      - devplay_pg:/var/lib/postgresql/data
+
+volumes:
+  devplay_pg:

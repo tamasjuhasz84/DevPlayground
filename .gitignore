@@ -1,0 +1,33 @@
+# Node
+node_modules/
+.pnpm-store/
+.pnp.cjs
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Env files
+.env
+.env.*
+apps/api/.env
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+docker-data/
+
+# Prisma
+apps/api/prisma/migrations/dev.db

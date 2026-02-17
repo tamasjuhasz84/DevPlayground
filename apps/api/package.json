@@ -1,0 +1,28 @@
+{
+  "name": "@dp/api",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "build": "echo \"(later)\"",
+    "lint": "eslint src test",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "format": "prettier --write src test"
+  },
+  "dependencies": {
+    "@dp/shared": "workspace:*",
+    "better-sqlite3": "12.6.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^7.2.2"
+  }
+}

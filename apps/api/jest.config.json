@@ -1,0 +1,9 @@
+{
+  "testEnvironment": "node",
+  "testMatch": ["**/test/**/*.test.js"],
+  "transform": {},
+  "collectCoverageFrom": ["src/**/*.js", "!src/index.js"],
+  "coverageDirectory": "coverage",
+  "coverageReporters": ["text", "lcov", "html"],
+  "verbose": true
+}
