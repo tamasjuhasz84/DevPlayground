@@ -87,22 +87,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Rebuild better-sqlite3 (from root)
-        run: pnpm rebuild better-sqlite3
+      - name: Rebuild better-sqlite3 for @dp/api
+        run: pnpm --filter @dp/api rebuild better-sqlite3
 
-      - name: Verify build artifact location
+      - name: Verify build artifact exists
         run: |
-          echo "=== Searching for better_sqlite3.node ==="
-          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print || echo "Not found"
-          echo "=== Checking expected path ==="
-          ls -la node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/build/Release/ || echo "Build dir not found"
+          echo "=== Searching for better_sqlite3.node in pnpm store ==="
+          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -print || echo "Not found in pnpm store"
+          echo "=== Checking apps/api node_modules ==="
+          ls -la apps/api/node_modules/better-sqlite3/build/Release/ 2>/dev/null || echo "Not found in apps/api"
 
-      - name: Hard gate - verify better-sqlite3 loads
+      - name: Hard gate - verify better-sqlite3 loads from apps/api
         run: |
-          echo "=== Testing from root context ==="
-          node -e "require('better-sqlite3'); console.log('better-sqlite3 OK from root')"
-          echo "=== Testing from apps/api context ==="
-          cd apps/api && node -e "require('better-sqlite3'); console.log('better-sqlite3 OK from apps/api')"
+          echo "=== Running require test from apps/api context ==="
+          cd apps/api && node -e "const db = require('better-sqlite3')(':memory:'); console.log('better-sqlite3 loaded OK'); db.close();"
 
       - name: Test API
         run: pnpm -C apps/api test
