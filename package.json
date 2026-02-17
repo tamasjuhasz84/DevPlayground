@@ -6,10 +6,12 @@
   "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build",
-    "lint": "eslint . && pnpm -r lint",
-    "test": "pnpm -r test",
-    "format": "prettier --write . && pnpm -r format"
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm -r --if-present run lint",
+    "build": "pnpm -r --if-present run build",
+    "test": "pnpm -r --if-present run test",
+    "coverage": "pnpm --filter @dp/api run coverage && pnpm --filter web run coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

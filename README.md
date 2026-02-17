@@ -1,10 +1,20 @@
 # Dev Playground
 
-![CI Status](https://github.com/YOUR_GITHUB_USERNAME/dev-playground/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/tamasjuhasz84/DevPlayground/actions/workflows/ci.yml/badge.svg)](https://github.com/tamasjuhasz84/DevPlayground/actions/workflows/ci.yml)
 
-A full-stack monorepo demonstrating modern web development practices with dynamic form building, real-time data handling, and enterprise-grade architecture.
+A pnpm monorepo demonstrating layered architecture with shared validation and consistent API contracts. Implements a dynamic form system using Vue 3, Express, and SQLite to showcase repository patterns, type-safe data flows, and build tooling.
 
-**Dev Playground** is a production-ready demonstration project showcasing end-to-end TypeScript development in a pnpm monorepo. Built with Vue 3, Express, and PostgreSQL, it features a complete form management system—from schema design to submission analytics—emphasizing clean architecture, type safety, and developer experience.
+**Focus:** Clean separation between frontend, backend, and shared logic. Zod schemas enforce validation at boundaries. Express routes delegate to repositories for data access. Vue components consume a typed API client with predictable error handling. CI pipeline validates code quality and test coverage on every commit.
+
+---
+
+## Why This Project Exists
+
+This project prioritizes **architecture clarity over feature complexity**. Rather than building a feature-rich application, it demonstrates patterns that scale: layered backend structure (Routes → Controllers → Repositories → Database) with global error handling and DTO mapping at response boundaries, shared validation contracts via Zod, and predictable API envelope design (`{ok, data}` / `{ok, error}`).
+
+The form builder domain was chosen for its natural fit with CRUD operations, schema validation, and dynamic rendering—allowing focus on **how** the system is structured rather than **what** it does. Every decision optimizes for readability, testability, and maintainability.
+
+This is not a production app. It's a technical showcase for senior developers and hiring teams evaluating architectural thinking, code organization, and engineering discipline.
 
 ---
 
@@ -32,13 +42,13 @@ A full-stack monorepo demonstrating modern web development practices with dynami
 
 - **Node.js 22** - Modern JavaScript runtime
 - **Express** - Minimalist web framework
-- **Better SQLite3** - Embedded SQL database with native performance
-- **Zod** - TypeScript-first schema validation
+- **Better SQLite3** - Primary persistence layer (embedded SQL database)
+- **Zod** - Schema validation and type safety
 
 ### Infrastructure
 
 - **pnpm** - Fast, disk space efficient package manager
-- **Docker Compose** - PostgreSQL containerization (migration ready)
+- **Docker Compose** - PostgreSQL container included for future migration
 - **Monorepo** - Shared code and coordinated versioning
 
 ---
@@ -131,7 +141,7 @@ PORT=3001
 NODE_ENV=development
 ```
 
-> **Note**: The API currently uses SQLite (`better-sqlite3`) for rapid development. Docker Postgres is available for future migration to Prisma.
+> **Note**: The API currently uses SQLite (`better-sqlite3`) as the primary persistence layer. PostgreSQL via Docker Compose is included for future migration.
 
 ---
 
@@ -155,6 +165,7 @@ pnpm build        # Build all workspaces for production
 
 ```bash
 pnpm test         # Run tests across all workspaces
+pnpm coverage     # Generate coverage reports for API and Web
 ```
 
 ### Linting & Formatting
@@ -212,39 +223,22 @@ dev-playground/
 
 ### Testing
 
-#### API Tests (Jest + Supertest)
+**API Tests (Jest + Supertest)**  
+Smoke tests verify server startup and health endpoints. Core route tests cover CRUD operations for forms and submissions.
 
-- Smoke tests verify server startup and health endpoints
-- Core route tests cover CRUD operations for forms and submissions
-- Run: `pnpm --filter @dp/api test`
-- Coverage: `pnpm --filter @dp/api test:coverage`
+**Web Tests (Vitest + jsdom)**  
+Component smoke tests ensure views render without errors. API client unit tests validate request/response handling.
 
-#### Web Tests (Vitest)
+Run all tests: `pnpm test`  
+Generate coverage: `pnpm coverage`
 
-- Component smoke tests ensure views render without errors
-- API client unit tests validate request/response handling
-- Run: `pnpm --filter web test`
-- Coverage: `pnpm --filter web test:coverage`
-
-#### Coverage Reports
-
-Coverage reports are generated in:
-
-- `apps/api/coverage/` - API test coverage (lcov + HTML)
-- `apps/web/coverage/` - Frontend test coverage (lcov + HTML)
-
-Open `coverage/index.html` in your browser to view detailed coverage metrics.
+Coverage reports are generated in `apps/api/coverage/` and `apps/web/coverage/` directories (lcov + HTML format).
 
 ### Continuous Integration
 
-**GitHub Actions** pipeline runs on every push and pull request:
+**GitHub Actions** runs on every push and pull request to `main` and `develop` branches:
 
-1. **Install** - Restore pnpm cache and install dependencies
-2. **Lint** - Run ESLint across all workspaces
-3. **Test** - Execute Jest and Vitest test suites
-4. **Coverage** - Generate and upload coverage reports
-
-CI badge status displayed at the top of this README.
+The pipeline executes: format check → lint → build → test → coverage, ensuring code quality on every commit. Coverage reports are uploaded as workflow artifacts for review.
 
 ---
 
@@ -265,16 +259,14 @@ Key highlights:
 
 ## Roadmap
 
-### Planned Enhancements
+### Architecture & Quality Improvements
 
-- **CI/CD Pipeline** - GitHub Actions for automated testing and deployment
-- **Unit & E2E Tests** - Vitest + Playwright test suites
-- **Real-time Status Dashboard** - WebSocket-based live submission monitoring
-- **CSV/Excel Export** - Bulk submission data export functionality
-- **Form Templates** - Pre-built form schemas for common use cases
-- **Field Validation Rules** - Advanced validation (regex, min/max, custom logic)
-- **Multi-language Support** - i18n for form labels and UI
-- **Prisma Migration** - Transition from SQLite to PostgreSQL with Prisma ORM
+- **Test Coverage Expansion** - Increase unit test coverage across repositories and utilities
+- **End-to-End Testing** - Playwright test suite for critical user flows
+- **CI Pipeline Hardening** - Add matrix testing across Node versions, parallel job execution
+- **Database Abstraction** - Migrate from direct SQLite queries to Prisma ORM for type safety
+- **Integration Tests** - Test database transactions and repository layer edge cases
+- **API Contract Testing** - Schema validation tests to prevent breaking changes
 
 ---
 

@@ -16,16 +16,24 @@ export function createApp() {
   app.use(express.json());
 
   app.get("/health", (req, res) => {
-    const payload = { ok: true, service: "api", time: nowIso() };
-    const parsed = HealthSchema.safeParse(payload);
-    if (!parsed.success)
-      return res.status(500).json({ ok: false, error: "Invalid health payload" });
-    res.json(payload);
+    const data = { service: "api", time: nowIso() };
+    const parsed = HealthSchema.safeParse(data);
+    if (!parsed.success) {
+      return res.status(500).json({
+        ok: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Invalid health payload",
+        },
+      });
+    }
+    res.json({ ok: true, data });
   });
 
   // Mount routers
   app.use("/forms", formsRouter);
-  app.use("/", submissionsRouter);
+  app.use("/forms", submissionsRouter); // For /:formId/submissions routes
+  app.use("/", submissionsRouter); // For /submissions/:id route
 
   // Error handler
   app.use(errorHandler);

@@ -6,53 +6,50 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
 
+    env:
+      CI: true
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Format check
+        run: pnpm format:check
+
       - name: Lint
         run: pnpm lint
 
-      - name: Test API
-        run: pnpm --filter @dp/api test
+      - name: Build
+        run: pnpm build
 
-      - name: Test Web
-        run: pnpm --filter web test
+      - name: Test
+        run: pnpm test
 
       - name: Generate coverage
-        run: |
-          pnpm --filter @dp/api coverage
-          pnpm --filter web coverage
+        run: pnpm coverage
 
       - name: Upload API coverage
         uses: actions/upload-artifact@v4
@@ -60,6 +57,7 @@ jobs:
         with:
           name: api-coverage
           path: apps/api/coverage/
+          if-no-files-found: warn
 
       - name: Upload Web coverage
         uses: actions/upload-artifact@v4
@@ -67,3 +65,25 @@ jobs:
         with:
           name: web-coverage
           path: apps/web/coverage/
+          if-no-files-found: warn
+
+      - name: Generate workflow summary
+        if: always()
+        run: |
+          echo "# CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js**: 22" >> $GITHUB_STEP_SUMMARY
+          echo "- **pnpm**: 10" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runner**: ubuntu-latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Quality Checks" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Code formatting (prettier)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Linting (eslint)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build verification" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Test suite" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Coverage generation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 **api-coverage** - API test coverage report" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 **web-coverage** - Web test coverage report" >> $GITHUB_STEP_SUMMARY

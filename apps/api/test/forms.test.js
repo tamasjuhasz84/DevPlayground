@@ -1,15 +1,32 @@
 import request from "supertest";
-import { createApp } from "../src/app.js";
-import { initDb } from "../src/db/index.js";
+import { getTestApp, resetDb } from "./setup.js";
+
+/**
+ * Helper function to create a test form
+ * @param {Object} app - Express app instance
+ * @param {Object} overrides - Optional form data overrides
+ * @returns {Promise<string>} The created form ID
+ */
+async function createTestForm(app, overrides = {}) {
+  const defaultFormData = {
+    name: "Test Form",
+    description: "Test description",
+  };
+
+  const formData = { ...defaultFormData, ...overrides };
+  const response = await request(app).post("/forms").send(formData);
+  return response.body.data.id;
+}
 
 describe("Forms API", () => {
   let app;
-  let createdFormId;
 
   beforeAll(() => {
-    // Initialize database before tests
-    initDb();
-    app = createApp();
+    app = getTestApp();
+  });
+
+  beforeEach(() => {
+    resetDb();
   });
 
   describe("POST /forms", () => {
@@ -28,9 +45,6 @@ describe("Forms API", () => {
       expect(response.body.data.description).toBe(formData.description);
       expect(response.body.data.status).toBe("active");
       expect(response.body.data.createdAt).toBeDefined();
-
-      // Save ID for subsequent tests
-      createdFormId = response.body.data.id;
     });
 
     test("should reject form without name", async () => {
@@ -40,11 +54,15 @@ describe("Forms API", () => {
         .expect(400);
 
       expect(response.body.ok).toBe(false);
+      expect(response.body.error.code).toBe("VALIDATION_ERROR");
+      expect(response.body.error.message).toBeDefined();
+      expect(Array.isArray(response.body.error.details)).toBe(true);
     });
   });
 
   describe("PUT /forms/:id/schema", () => {
     test("should save fields with proper ordering", async () => {
+      const formId = await createTestForm(app);
       const schemaData = {
         name: "Updated Test Form",
         description: "Updated description",
@@ -78,7 +96,7 @@ describe("Forms API", () => {
       };
 
       const response = await request(app)
-        .put(`/forms/${createdFormId}/schema`)
+        .put(`/forms/${formId}/schema`)
         .send(schemaData)
         .expect(200);
 
@@ -90,6 +108,8 @@ describe("Forms API", () => {
     });
 
     test("should reject invalid field type", async () => {
+      const formId = await createTestForm(app);
+
       const invalidSchema = {
         name: "Test Form",
         fields: [
@@ -103,11 +123,14 @@ describe("Forms API", () => {
       };
 
       const response = await request(app)
-        .put(`/forms/${createdFormId}/schema`)
+        .put(`/forms/${formId}/schema`)
         .send(invalidSchema)
         .expect(400);
 
       expect(response.body.ok).toBe(false);
+      expect(response.body.error.code).toBe("VALIDATION_ERROR");
+      expect(response.body.error.message).toBeDefined();
+      expect(Array.isArray(response.body.error.details)).toBe(true);
     });
   });
 
@@ -152,6 +175,8 @@ describe("Forms API", () => {
       const response = await request(app).get("/forms/non-existent-id").expect(404);
 
       expect(response.body.ok).toBe(false);
+      expect(response.body.error.code).toBe("NOT_FOUND");
+      expect(response.body.error.message).toBeDefined();
     });
   });
 });

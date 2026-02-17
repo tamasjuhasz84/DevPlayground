@@ -1,30 +1,36 @@
 import request from "supertest";
-import { createApp } from "../src/app.js";
-import { initDb } from "../src/db/index.js";
+import { getTestApp, resetDb } from "./setup.js";
 
 describe("GET /health", () => {
   let app;
 
   beforeAll(() => {
-    // Initialize database before tests
-    initDb();
-    app = createApp();
+    app = getTestApp();
   });
 
-  test("should return 200 status", async () => {
-    const response = await request(app).get("/health");
-    expect(response.status).toBe(200);
+  beforeEach(() => {
+    resetDb();
   });
 
-  test("should return ok: true", async () => {
-    const response = await request(app).get("/health");
+  test("should return standard success envelope with service and timestamp", async () => {
+    const response = await request(app).get("/health").expect(200);
+
+    // Assert standard envelope structure
     expect(response.body.ok).toBe(true);
-  });
+    expect(response.body.data).toBeDefined();
 
-  test("should include service name and timestamp", async () => {
-    const response = await request(app).get("/health");
-    expect(response.body.service).toBe("api");
-    expect(response.body.time).toBeDefined();
-    expect(typeof response.body.time).toBe("string");
+    // Assert data payload
+    expect(response.body.data.service).toBe("api");
+    expect(response.body.data.time).toBeDefined();
+    expect(typeof response.body.data.time).toBe("string");
+
+    // Assert time is valid ISO-like string
+    const time = response.body.data.time;
+    expect(time).toContain("T");
+    expect(time.endsWith("Z") || time.includes("+") || time.includes("-")).toBe(true);
+
+    // Verify time can be parsed as valid date
+    const parsedDate = new Date(time);
+    expect(parsedDate.toString()).not.toBe("Invalid Date");
   });
 });

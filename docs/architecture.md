@@ -28,6 +28,31 @@ dev-playground/
 
 ---
 
+## API Architecture
+
+### Application Structure
+
+The API separates app creation from server startup:
+
+- **`app.js`**: Exports `createApp()` factory function that returns an Express app without starting the server. This separation enables testing without binding to ports.
+- **`index.js`**: Entry point that calls `createApp()` and starts the server on port 3001.
+
+### Error Handling
+
+All errors flow through a centralized error handling system:
+
+- **`AppError` class**: Custom error with `statusCode`, `errorCode`, and optional `details` for business logic errors.
+- **`errorHandler` middleware**: Global error handler applied last in the middleware chain. Catches all errors (ZodError, AppError, unknown errors), logs them with `logError(err, context)`, and returns a standard envelope.
+- **`asyncHandler` wrapper**: Wraps all async route handlers, eliminating try/catch blocks. Automatically catches errors and passes them to the error middleware.
+
+All API responses follow the standard envelope format documented in [API Response Format](#api-response-format) section below.
+
+### DTO Mapping
+
+The API uses `toSchemaDto()` to transform database records into public API contracts at response boundaries. This pattern prevents leakage of internal database structure (table columns, foreign keys, internal IDs) and maintains a stable contract even when the persistence layer evolves. Route handlers return DTOs, not raw database objects, ensuring complete decoupling between API responses and storage implementation.
+
+---
+
 ## Database
 
 The API connects to a database via the `DATABASE_URL` environment variable. Two options are supported:
