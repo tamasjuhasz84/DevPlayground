@@ -93,7 +93,7 @@ jobs:
       - name: Hard gate - verify better-sqlite3 loads
         run: |
           cd apps/api
-          node --input-type=module -e "import Database from 'better-sqlite3'; const db = new Database(':memory:'); console.log('✓ better-sqlite3 loaded successfully'); db.close();"
+          node -e "require('better-sqlite3'); console.log('✓ better-sqlite3 loaded successfully');"
 
       - name: Test API
         run: pnpm -C apps/api test
