@@ -59,50 +59,50 @@ jobs:
           if-no-files-found: warn
 
   api:
-  name: API (Node 20 LTS)
-  runs-on: ubuntu-latest
-  env:
-    CI: true
-    npm_config_build_from_source: true
-    npm_config_ignore_scripts: "false"
+    name: API (Node 20 LTS)
+    runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    env:
+      CI: true
+      npm_config_build_from_source: "true"
+      npm_config_ignore_scripts: "false"
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        # IMPORTANT: no pnpm cache here (native addon determinism)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-    - name: Install build prerequisites
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3 make g++ build-essential pkg-config libsqlite3-dev
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 make g++ build-essential pkg-config libsqlite3-dev
 
-    - name: Rebuild better-sqlite3 (api)
-      run: pnpm -C apps/api rebuild better-sqlite3
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Hard gate (require better-sqlite3)
-      run: pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
+      - name: Rebuild better-sqlite3
+        run: pnpm -C apps/api rebuild better-sqlite3
 
-    - name: Test API
-      run: pnpm --filter @dp/api test
+      - name: Hard gate - verify better-sqlite3 loads
+        run: pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
 
-    - name: Generate API coverage
-      run: pnpm --filter @dp/api run coverage
+      - name: Test API
+        run: pnpm --filter @dp/api test
 
-    - name: Upload API coverage
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: api-coverage
-        path: apps/api/coverage/
-        if-no-files-found: warn
+      - name: Generate API coverage
+        run: pnpm --filter @dp/api run coverage
+
+      - name: Upload API coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: apps/api/coverage/
+          if-no-files-found: warn
