@@ -94,10 +94,10 @@ jobs:
         run: pnpm -C apps/api exec node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
 
       - name: Test API
-        run: pnpm --filter @dp/api test
+        run: pnpm -C apps/api test
 
       - name: Generate API coverage
-        run: pnpm --filter @dp/api run coverage
+        run: pnpm -C apps/api run coverage
 
       - name: Upload API coverage
         uses: actions/upload-artifact@v4
