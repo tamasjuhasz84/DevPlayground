@@ -20,7 +20,7 @@ dev-playground/
 
 ### Responsibilities
 
-- **`apps/api`**: Handles all business logic, database operations (via better-sqlite3 or Postgres), and exposes RESTful endpoints. Routes → Controllers → Repositories → Database.
+- **`apps/api`**: Handles all business logic, database operations (via sqlite3 or Postgres), and exposes RESTful endpoints. Routes → Controllers → Repositories → Database.
 
 - **`apps/web`**: Vue 3 single-page application with Vuetify components. Communicates with API via axios client (`src/lib/api.js`). Responsibilities include UI rendering, form validation, and navigation.
 
@@ -268,7 +268,7 @@ Frontend's `api.js` unwraps responses via helper functions (`unwrap`, `toErrorMe
 ## Technology Stack
 
 - **Frontend**: Vue 3 (Composition API), Vuetify 3, Vue Router, Axios
-- **Backend**: Node.js 22, Express.js, better-sqlite3 or pg
+- **Backend**: Node.js 22, Express.js, sqlite3 or pg
 - **Validation**: Zod (shared)
 - **Infrastructure**: Docker Compose, pnpm workspaces
 - **Database**: SQLite (dev), PostgreSQL 16 (production-ready)

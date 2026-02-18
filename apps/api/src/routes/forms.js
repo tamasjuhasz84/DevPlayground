@@ -35,7 +35,7 @@ function toSchemaDto(form) {
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const forms = formsRepo.listForms();
+    const forms = await formsRepo.listForms();
 
     res.json({
       ok: true,
@@ -50,7 +50,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const validatedData = CreateFormSchema.parse(req.body);
 
-    const form = formsRepo.createForm(validatedData);
+    const form = await formsRepo.createForm(validatedData);
 
     res.status(201).json({
       ok: true,
@@ -63,7 +63,7 @@ router.post(
 router.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const form = formsRepo.getForm(req.params.id);
+    const form = await formsRepo.getForm(req.params.id);
 
     if (!form) {
       throw new AppError("Form not found", 404, "NOT_FOUND");
@@ -82,7 +82,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const validatedData = UpdateFormSchema.parse(req.body);
 
-    const form = formsRepo.updateForm(req.params.id, validatedData);
+    const form = await formsRepo.updateForm(req.params.id, validatedData);
 
     if (!form) {
       throw new AppError("Form not found", 404, "NOT_FOUND");
@@ -101,7 +101,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const validatedData = UpsertFormSchema.parse(req.body);
 
-    const updatedForm = formsRepo.replaceSchema(req.params.id, validatedData);
+    const updatedForm = await formsRepo.replaceSchema(req.params.id, validatedData);
 
     if (!updatedForm) {
       throw new AppError("Form not found", 404, "NOT_FOUND");
@@ -118,7 +118,7 @@ router.put(
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    const deleted = formsRepo.deleteForm(req.params.id);
+    const deleted = await formsRepo.deleteForm(req.params.id);
 
     if (!deleted) {
       throw new AppError("Form not found", 404, "NOT_FOUND");

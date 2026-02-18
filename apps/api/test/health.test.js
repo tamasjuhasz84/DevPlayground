@@ -4,12 +4,12 @@ import { getTestApp, resetDb } from "./setup.js";
 describe("GET /health", () => {
   let app;
 
-  beforeAll(() => {
-    app = getTestApp();
+  beforeAll(async () => {
+    app = await getTestApp();
   });
 
-  beforeEach(() => {
-    resetDb();
+  beforeEach(async () => {
+    await resetDb();
   });
 
   test("should return standard success envelope with service and timestamp", async () => {

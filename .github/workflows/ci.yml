@@ -87,30 +87,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Force rebuild better-sqlite3 from pnpm store location
+      - name: Force rebuild sqlite3 from pnpm store location
         run: |
-          echo "=== Locating better-sqlite3 in pnpm store ==="
-          BETTER_SQLITE_PATH=$(find node_modules/.pnpm -type d -path "*/better-sqlite3@*/node_modules/better-sqlite3" | head -n1)
-          echo "Found at: $BETTER_SQLITE_PATH"
-          if [ -z "$BETTER_SQLITE_PATH" ]; then
-            echo "ERROR: Could not locate better-sqlite3 in pnpm store"
+          echo "=== Locating sqlite3 in pnpm store ==="
+          SQLITE3_PATH=$(find node_modules/.pnpm -type d -path "*/sqlite3@*/node_modules/sqlite3" | head -n1)
+          echo "Found at: $SQLITE3_PATH"
+          if [ -z "$SQLITE3_PATH" ]; then
+            echo "ERROR: Could not locate sqlite3 in pnpm store"
             exit 1
           fi
-          echo "=== Running npm rebuild in better-sqlite3 directory ==="
-          cd "$BETTER_SQLITE_PATH"
+          echo "=== Running npm rebuild in sqlite3 directory ==="
+          cd "$SQLITE3_PATH"
           npm rebuild --build-from-source
           echo "=== Verifying build output ==="
           ls -la build/Release/ || echo "Build failed - no Release directory"
 
       - name: Verify build artifact exists
         run: |
-          echo "=== Searching for better_sqlite3.node ==="
-          find node_modules/.pnpm -path '*better-sqlite3*' -name 'better_sqlite3.node' -ls || echo "ERROR: No .node file found"
+          echo "=== Searching for node_sqlite3.node ==="
+          find node_modules/.pnpm -path '*sqlite3*' -name 'node_sqlite3.node' -ls || echo "ERROR: No .node file found"
 
-      - name: Hard gate - verify better-sqlite3 loads from apps/api
+      - name: Hard gate - verify sqlite3 loads from apps/api
         run: |
           echo "=== Running require test from apps/api ==="
-          cd apps/api && node -e "const db = require('better-sqlite3')(':memory:'); console.log('✓ better-sqlite3 loaded successfully'); db.close();"
+          cd apps/api && node -e "const sqlite3=require('sqlite3'); const db=new sqlite3.Database(':memory:', (err)=>{ if(err){ console.error(err); process.exit(1);} console.log('✓ sqlite3 loaded successfully'); db.close();});"
 
       - name: Test API
         run: pnpm -C apps/api test

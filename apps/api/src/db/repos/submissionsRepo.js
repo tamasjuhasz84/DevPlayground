@@ -3,17 +3,16 @@ import { db, uuid, nowIso } from "../index.js";
 /**
  * List submissions for a specific form
  * @param {string} formId - Form ID
- * @returns {Array} Array of submissions with parsed payloads
+ * @returns {Promise<Array>} Array of submissions with parsed payloads
  */
-export function listByForm(formId) {
-  const stmt = db.prepare(`
-    SELECT id, formId, payload, status, createdAt, updatedAt
-    FROM submissions
-    WHERE formId = ?
-    ORDER BY createdAt DESC
-  `);
-
-  const submissions = stmt.all(formId);
+export async function listByForm(formId) {
+  const submissions = await db.all(
+    `SELECT id, formId, payload, status, createdAt, updatedAt
+     FROM submissions
+     WHERE formId = ?
+     ORDER BY createdAt DESC`,
+    formId
+  );
 
   return submissions.map((submission) => ({
     ...submission,
@@ -25,21 +24,23 @@ export function listByForm(formId) {
  * Create a new submission
  * @param {string} formId - Form ID
  * @param {Object} payload - Submission payload
- * @returns {Object} Created submission with parsed payload
+ * @returns {Promise<Object>} Created submission with parsed payload
  */
-export function createSubmission(formId, payload) {
+export async function createSubmission(formId, payload) {
   const id = uuid();
   const now = nowIso();
 
-  const stmt = db.prepare(`
-    INSERT INTO submissions (id, formId, payload, status, createdAt, updatedAt)
-    VALUES (?, ?, ?, 'pending', ?, ?)
-  `);
+  await db.run(
+    `INSERT INTO submissions (id, formId, payload, status, createdAt, updatedAt)
+     VALUES (?, ?, ?, 'pending', ?, ?)`,
+    id,
+    formId,
+    JSON.stringify(payload),
+    now,
+    now
+  );
 
-  stmt.run(id, formId, JSON.stringify(payload), now, now);
-
-  const getStmt = db.prepare("SELECT * FROM submissions WHERE id = ?");
-  const submission = getStmt.get(id);
+  const submission = await db.get("SELECT * FROM submissions WHERE id = ?", id);
 
   return {
     ...submission,
@@ -50,11 +51,10 @@ export function createSubmission(formId, payload) {
 /**
  * Get a submission by ID
  * @param {string} id - Submission ID
- * @returns {Object|null} Submission with parsed payload or null if not found
+ * @returns {Promise<Object|null>} Submission with parsed payload or null if not found
  */
-export function getSubmission(id) {
-  const stmt = db.prepare("SELECT * FROM submissions WHERE id = ?");
-  const submission = stmt.get(id);
+export async function getSubmission(id) {
+  const submission = await db.get("SELECT * FROM submissions WHERE id = ?", id);
 
   if (!submission) {
     return null;

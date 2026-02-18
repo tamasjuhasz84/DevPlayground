@@ -7,11 +7,11 @@ let dbInitialized = false;
 /**
  * Get test app instance
  * Initializes database only once per test run
- * @returns {import('express').Application}
+ * @returns {Promise<import('express').Application>}
  */
-export function getTestApp() {
+export async function getTestApp() {
   if (!dbInitialized) {
-    initDb();
+    await initDb();
     dbInitialized = true;
   }
 
@@ -26,9 +26,9 @@ export function getTestApp() {
  * Reset database by clearing all tables
  * Call this in beforeEach or beforeAll to ensure test isolation
  */
-export function resetDb() {
+export async function resetDb() {
   // Clear tables in order to respect foreign key constraints
-  db.prepare("DELETE FROM submissions").run();
-  db.prepare("DELETE FROM form_fields").run();
-  db.prepare("DELETE FROM forms").run();
+  await db.run("DELETE FROM submissions");
+  await db.run("DELETE FROM form_fields");
+  await db.run("DELETE FROM forms");
 }

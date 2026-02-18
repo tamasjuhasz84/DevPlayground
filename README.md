@@ -42,7 +42,7 @@ This is not a production app. It's a technical showcase for senior developers an
 
 - **Node.js 22** - Modern JavaScript runtime
 - **Express** - Minimalist web framework
-- **Better SQLite3** - Primary persistence layer (embedded SQL database)
+- **sqlite3** - Primary persistence layer (embedded SQL database)
 - **Zod** - Schema validation and type safety
 
 ### Infrastructure
@@ -141,7 +141,7 @@ PORT=3001
 NODE_ENV=development
 ```
 
-> **Note**: The API currently uses SQLite (`better-sqlite3`) as the primary persistence layer. PostgreSQL via Docker Compose is included for future migration.
+> **Note**: The API currently uses SQLite (`sqlite3`) as the primary persistence layer. PostgreSQL via Docker Compose is included for future migration.
 
 ---
 
@@ -282,13 +282,13 @@ rm apps/api/data/dev.sqlite
 pnpm --filter @dp/api dev
 ```
 
-### Better-SQLite3 on Windows
+### sqlite3 on Windows
 
 If you encounter native binding errors after switching Node versions:
 
 ```bash
 cd apps/api
-pnpm rebuild better-sqlite3
+pnpm rebuild sqlite3
 ```
 
 ---

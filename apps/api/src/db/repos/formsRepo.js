@@ -2,16 +2,14 @@ import { db, uuid, nowIso } from "../index.js";
 
 /**
  * List all forms with basic information
- * @returns {Array} Array of forms
+ * @returns {Promise<Array>} Array of forms
  */
-export function listForms() {
-  const stmt = db.prepare(`
+export async function listForms() {
+  return await db.all(`
     SELECT id, name, description, status, createdAt, updatedAt
     FROM forms
     ORDER BY createdAt DESC
   `);
-
-  return stmt.all();
 }
 
 /**
@@ -19,43 +17,45 @@ export function listForms() {
  * @param {Object} data - Form data
  * @param {string} data.name - Form name
  * @param {string} [data.description] - Form description
- * @returns {Object} Created form
+ * @returns {Promise<Object>} Created form
  */
-export function createForm({ name, description }) {
+export async function createForm({ name, description }) {
   const id = uuid();
   const now = nowIso();
 
-  const stmt = db.prepare(`
-    INSERT INTO forms (id, name, description, status, createdAt, updatedAt)
-    VALUES (?, ?, ?, 'active', ?, ?)
-  `);
+  await db.run(
+    `INSERT INTO forms (id, name, description, status, createdAt, updatedAt)
+     VALUES (?, ?, ?, 'active', ?, ?)`,
+    id,
+    name,
+    description || null,
+    now,
+    now
+  );
 
-  stmt.run(id, name, description || null, now, now);
-
-  const getStmt = db.prepare("SELECT * FROM forms WHERE id = ?");
-  return getStmt.get(id);
+  return await db.get("SELECT * FROM forms WHERE id = ?", id);
 }
 
 /**
  * Get a form by ID with its fields
  * @param {string} id - Form ID
- * @returns {Object|null} Form with fields or null if not found
+ * @returns {Promise<Object|null>} Form with fields or null if not found
  */
-export function getForm(id) {
-  const formStmt = db.prepare("SELECT * FROM forms WHERE id = ?");
-  const form = formStmt.get(id);
+export async function getForm(id) {
+  const form = await db.get("SELECT * FROM forms WHERE id = ?", id);
 
   if (!form) {
     return null;
   }
 
-  const fieldsStmt = db.prepare(`
-    SELECT * FROM form_fields
-    WHERE formId = ?
-    ORDER BY ord ASC
-  `);
+  const fields = await db.all(
+    `SELECT * FROM form_fields
+     WHERE formId = ?
+     ORDER BY ord ASC`,
+    id
+  );
 
-  const fields = fieldsStmt.all(id).map((field) => ({
+  const processedFields = fields.map((field) => ({
     ...field,
     required: Boolean(field.required),
     config: field.config ? JSON.parse(field.config) : null,
@@ -63,7 +63,7 @@ export function getForm(id) {
 
   return {
     ...form,
-    fields,
+    fields: processedFields,
   };
 }
 
@@ -71,11 +71,10 @@ export function getForm(id) {
  * Update a form's basic fields
  * @param {string} id - Form ID
  * @param {Object} patch - Fields to update
- * @returns {Object|null} Updated form or null if not found
+ * @returns {Promise<Object|null>} Updated form or null if not found
  */
-export function updateForm(id, patch) {
-  const formStmt = db.prepare("SELECT * FROM forms WHERE id = ?");
-  const form = formStmt.get(id);
+export async function updateForm(id, patch) {
+  const form = await db.get("SELECT * FROM forms WHERE id = ?", id);
 
   if (!form) {
     return null;
@@ -107,15 +106,14 @@ export function updateForm(id, patch) {
   values.push(nowIso());
   values.push(id);
 
-  const stmt = db.prepare(`
-    UPDATE forms
-    SET ${updates.join(", ")}
-    WHERE id = ?
-  `);
+  await db.run(
+    `UPDATE forms
+     SET ${updates.join(", ")}
+     WHERE id = ?`,
+    ...values
+  );
 
-  stmt.run(...values);
-
-  return formStmt.get(id);
+  return await db.get("SELECT * FROM forms WHERE id = ?", id);
 }
 
 /**
@@ -126,39 +124,41 @@ export function updateForm(id, patch) {
  * @param {string} [data.description] - Form description
  * @param {string} [data.status] - Form status
  * @param {Array} data.fields - Array of fields
- * @returns {Object|null} Updated form with fields or null if not found
+ * @returns {Promise<Object|null>} Updated form with fields or null if not found
  */
-export function replaceSchema(id, { name, description, status, fields }) {
-  const formStmt = db.prepare("SELECT * FROM forms WHERE id = ?");
-  const form = formStmt.get(id);
+export async function replaceSchema(id, { name, description, status, fields }) {
+  const form = await db.get("SELECT * FROM forms WHERE id = ?", id);
 
   if (!form) {
     return null;
   }
 
-  const transaction = db.transaction(() => {
+  try {
+    // Begin transaction
+    await db.exec("BEGIN TRANSACTION");
+
     // Update form
     const now = nowIso();
-    const updateFormStmt = db.prepare(`
-      UPDATE forms
-      SET name = ?, description = ?, status = ?, updatedAt = ?
-      WHERE id = ?
-    `);
-    updateFormStmt.run(name, description || null, status || form.status, now, id);
+    await db.run(
+      `UPDATE forms
+       SET name = ?, description = ?, status = ?, updatedAt = ?
+       WHERE id = ?`,
+      name,
+      description || null,
+      status || form.status,
+      now,
+      id
+    );
 
     // Delete existing fields
-    const deleteFieldsStmt = db.prepare("DELETE FROM form_fields WHERE formId = ?");
-    deleteFieldsStmt.run(id);
+    await db.run("DELETE FROM form_fields WHERE formId = ?", id);
 
     // Insert new fields
     if (fields && fields.length > 0) {
-      const insertFieldStmt = db.prepare(`
-        INSERT INTO form_fields (id, formId, type, name, label, required, ord, config, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
       for (const field of fields) {
-        insertFieldStmt.run(
+        await db.run(
+          `INSERT INTO form_fields (id, formId, type, name, label, required, ord, config, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           uuid(),
           id,
           field.type,
@@ -172,28 +172,31 @@ export function replaceSchema(id, { name, description, status, fields }) {
         );
       }
     }
-  });
 
-  transaction();
+    // Commit transaction
+    await db.exec("COMMIT");
+  } catch (error) {
+    // Rollback on error
+    await db.exec("ROLLBACK");
+    throw error;
+  }
 
-  return getForm(id);
+  return await getForm(id);
 }
 
 /**
  * Delete a form (cascades to fields and submissions)
  * @param {string} id - Form ID
- * @returns {boolean} True if deleted, false if not found
+ * @returns {Promise<boolean>} True if deleted, false if not found
  */
-export function deleteForm(id) {
-  const formStmt = db.prepare("SELECT * FROM forms WHERE id = ?");
-  const form = formStmt.get(id);
+export async function deleteForm(id) {
+  const form = await db.get("SELECT * FROM forms WHERE id = ?", id);
 
   if (!form) {
     return false;
   }
 
-  const stmt = db.prepare("DELETE FROM forms WHERE id = ?");
-  stmt.run(id);
+  await db.run("DELETE FROM forms WHERE id = ?", id);
 
   return true;
 }

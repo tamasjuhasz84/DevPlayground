@@ -21,12 +21,12 @@ async function createTestForm(app, overrides = {}) {
 describe("Forms API", () => {
   let app;
 
-  beforeAll(() => {
-    app = getTestApp();
+  beforeAll(async () => {
+    app = await getTestApp();
   });
 
-  beforeEach(() => {
-    resetDb();
+  beforeEach(async () => {
+    await resetDb();
   });
 
   describe("POST /forms", () => {

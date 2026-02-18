@@ -11,13 +11,13 @@ const router = express.Router();
 router.get(
   "/:formId/submissions",
   asyncHandler(async (req, res) => {
-    const form = formsRepo.getForm(req.params.formId);
+    const form = await formsRepo.getForm(req.params.formId);
 
     if (!form) {
       throw new AppError("Form not found", 404, "NOT_FOUND");
     }
 
-    const submissions = submissionsRepo.listByForm(req.params.formId);
+    const submissions = await submissionsRepo.listByForm(req.params.formId);
 
     res.json({
       ok: true,
@@ -32,13 +32,16 @@ router.post(
   asyncHandler(async (req, res) => {
     const validatedData = CreateSubmissionSchema.parse(req.body);
 
-    const form = formsRepo.getForm(req.params.formId);
+    const form = await formsRepo.getForm(req.params.formId);
 
     if (!form) {
       throw new AppError("Form not found", 404, "NOT_FOUND");
     }
 
-    const submission = submissionsRepo.createSubmission(req.params.formId, validatedData.payload);
+    const submission = await submissionsRepo.createSubmission(
+      req.params.formId,
+      validatedData.payload
+    );
 
     res.status(201).json({
       ok: true,
@@ -51,7 +54,7 @@ router.post(
 router.get(
   "/submissions/:id",
   asyncHandler(async (req, res) => {
-    const submission = submissionsRepo.getSubmission(req.params.id);
+    const submission = await submissionsRepo.getSubmission(req.params.id);
 
     if (!submission) {
       throw new AppError("Submission not found", 404, "NOT_FOUND");

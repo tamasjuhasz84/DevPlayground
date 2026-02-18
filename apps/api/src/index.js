@@ -17,7 +17,7 @@ process.on("unhandledRejection", (reason, promise) => {
 
 // Initialize database before starting server
 try {
-  initDb();
+  await initDb();
   const app = createApp();
   app.listen(PORT, () => console.log(`[api] http://localhost:${PORT}`));
 } catch (error) {
